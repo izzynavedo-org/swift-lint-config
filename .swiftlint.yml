@@ -46,13 +46,15 @@ cyclomatic_complexity:
   error: 25
 
 # Item 1: annotations/attributes on their own line above the declaration.
+# NOTE: @Test/@MainActor/@Observable/@discardableResult are intentionally NOT
+# listed under always_on_line_above below. SwiftLint's built-in `attributes`
+# rule forces exactly one attribute per line when it's in that list, which is
+# incompatible with combining multiple of them on one shared line above the
+# declaration (our house style). That combined/alphabetized/own-line behavior
+# is enforced instead by the three custom_rules below (verified locally
+# against real fixtures with `swiftlint lint`).
 attributes:
   severity: warning
-  always_on_line_above:
-    - "@Test"
-    - "@MainActor"
-    - "@Observable"
-    - "@discardableResult"
   always_on_same_line:
     - "@IBAction"
     - "@NSManaged"
@@ -114,4 +116,29 @@ custom_rules:
     regex: '(?m)^import\s+\S+\n@testable import'
     included: ".*Tests.*\\.swift"
     message: "Add a blank line between plain `import` statements and `@testable import` in test files."
+    severity: error
+
+  # Item 1 (cont.): @Test/@MainActor/@Observable/@discardableResult must be
+  # combined onto ONE shared line above the declaration — never stacked on
+  # separate lines. See NOTE above the built-in `attributes` rule for why
+  # this can't be done with that rule alone.
+  attribute_stacked_not_combined:
+    name: "Attribute Stacked, Should Be Combined"
+    regex: '(?m)^[ \t]*@(Test|MainActor|Observable|discardableResult)\b[^\n]*\r?\n[ \t]*@(Test|MainActor|Observable|discardableResult)\b'
+    message: "Combine @Test/@MainActor/@Observable/@discardableResult on one line above the declaration instead of stacking them on separate lines."
+    severity: error
+
+  # Item 1 (cont.): those same attributes must sit on their own line above
+  # the declaration, not inline with `class`/`struct`/`func`/etc.
+  attribute_on_declaration_line:
+    name: "Attribute Not On Its Own Line Above Declaration"
+    regex: '(?m)^[ \t]*@(Test|MainActor|Observable|discardableResult)\b[ \t]*\((?:[^()]*)\)?[ \t]*(final\s+|public\s+|private\s+|internal\s+|open\s+|fileprivate\s+|static\s+)*(class|struct|enum|extension|func)\b|(?m)^[ \t]*@(Test|MainActor|Observable|discardableResult)\b[ \t]+(final\s+|public\s+|private\s+|internal\s+|open\s+|fileprivate\s+|static\s+)*(class|struct|enum|extension|func)\b'
+    message: "Place @Test/@MainActor/@Observable/@discardableResult on their own line above the declaration, not on the same line."
+    severity: error
+
+  # Item 1 (cont.): when combined on one line, keep them alphabetically sorted.
+  attributes_should_be_alphabetized:
+    name: "Attributes Should Be Alphabetized"
+    regex: '@MainActor\b[^\n]*@discardableResult\b|@Observable\b[^\n]*@discardableResult\b|@Observable\b[^\n]*@MainActor\b|@Test\b[^\n]*@discardableResult\b|@Test\b[^\n]*@MainActor\b|@Test\b[^\n]*@Observable\b'
+    message: "Sort combined attributes alphabetically (e.g. @discardableResult @MainActor @Observable @Test)."
     severity: error
