@@ -51,12 +51,16 @@ attributes:
   severity: warning
   always_on_line_above:
     - "@discardableResult"
-    - "@MainActor"
-    - "@Observable"
-    - "@Test"
-  always_on_same_line:
+    - "@Environment"
     - "@IBAction"
+    - "@main"
+    - "@MainActor"
+    - "@Model"
     - "@NSManaged"
+    - "@Observable"
+    - "@Query"
+    - "@State"
+    - "@Test"
 
 # Item 2: prefer `case let .foo(x)` shorthand over `case .foo(let x)`.
 pattern_matching_keywords:
