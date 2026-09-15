@@ -1,0 +1,109 @@
+# Canonical shared SwiftLint configuration.
+# Consumed via `parent_config:` by izzynavedo-org/Rotation, izzynavedo-org/account-sync,
+# and izzynavedo-org/pr-review-dispatcher. See README.md before editing.
+
+opt_in_rules:
+  - attributes
+  - sorted_imports
+  - sorted_enum_cases
+  - type_contents_order
+
+disabled_rules:
+  - todo # we allow // TODO: comments (see custom rule below re: PR/issue refs)
+
+# --- Built-in rule tuning ---
+# Keep default noisy length/complexity rules at warning (not disabled, not error) so
+# existing large files don't hard-fail CI, but new/edited code still gets flagged.
+line_length:
+  warning: 150
+  error: 250
+  ignores_urls: true
+  ignores_function_declarations: true
+  ignores_comments: true
+
+function_body_length:
+  warning: 60
+  error: 120
+
+type_body_length:
+  warning: 300
+  error: 500
+
+file_length:
+  warning: 500
+  error: 1000
+
+cyclomatic_complexity:
+  warning: 15
+  error: 25
+
+# Item 1: annotations/attributes on their own line above the declaration.
+attributes:
+  severity: warning
+  always_on_line_above:
+    - "@Test"
+    - "@MainActor"
+    - "@Observable"
+    - "@discardableResult"
+  always_on_same_line:
+    - "@IBAction"
+    - "@NSManaged"
+
+# Item 2 (enums): enum cases kept alphabetically sorted.
+sorted_enum_cases:
+  severity: warning
+
+# Item 4 (partial): imports themselves sorted; blank-line-before-@testable is a
+# separate custom_rule below since sorted_imports doesn't enforce blank line grouping.
+sorted_imports:
+  severity: warning
+
+# Item 5: member ordering — properties above functions, private below internal/public.
+type_contents_order:
+  severity: warning
+  order:
+    - case
+    - [type_alias, associated_type]
+    - subtype
+    - type_property
+    - instance_property
+    - ib_inspectable
+    - ib_outlet
+    - initializer
+    - type_method
+    - view_life_cycle_method
+    - [ib_action, ib_segue_action]
+    - other_method
+    - subscript
+    - deinitializer
+
+# --- Custom regex rules ---
+# All at `error` severity: these are brand-new rules with no pre-existing-violation
+# backlog anywhere yet, since no repo references this shared config yet.
+custom_rules:
+  # Item 6: no PR/Linear issue references in comments, except `// TODO:` lines.
+  no_issue_refs_in_comments:
+    name: "No PR/Issue References in Comments"
+    regex: '(?-s)//(?!\s*TODO:).*\b([A-Z]{2,6}-\d+|PR ?#\d+)\b'
+    match_kinds:
+      - comment
+    message: "Don't reference PR/Linear issue numbers (e.g. IZZY-72, PR #9) in code comments, except on `// TODO:` lines."
+    severity: error
+
+  # Item 9: prefer modern `Mutex` over hand-rolled NSLock/manual locking.
+  prefer_mutex_over_nslock:
+    name: "Prefer Mutex over NSLock"
+    regex: '\bNSLock\s*\('
+    match_kinds:
+      - identifier
+    message: "Prefer the modern `Mutex` API over hand-rolled `NSLock`/manual locking."
+    severity: error
+
+  # Item 4: blank line required between plain `import` statements and
+  # `@testable import` statements in test files.
+  import_blank_line_before_testable:
+    name: "Blank Line Before @testable import"
+    regex: '(?m)^import\s+\S+\n@testable import'
+    included: ".*Tests.*\\.swift"
+    message: "Add a blank line between plain `import` statements and `@testable import` in test files."
+    severity: error
