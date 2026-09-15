@@ -120,3 +120,17 @@ custom_rules:
     included: ".*Tests.*\\.swift"
     message: "Add a blank line between plain `import` statements and `@testable import` in test files."
     severity: error
+
+  # Single-binding case let: prefer `case let .foo(x)` over `case .foo(let x)`.
+  # SwiftLint's built-in `pattern_matching_keywords` only covers patterns with
+  # 2+ bindings (e.g. `.foo(let x, let y)`); it does NOT flag a single binding
+  # like `.bar(let value)` (verified empirically against SwiftLint 0.65.1).
+  # This rule closes that gap. Matches `case .foo(let x)` / `case .foo(var x)`
+  # with exactly one bound identifier in the parens, and deliberately does NOT
+  # match when `let`/`var` already precedes the leading dot (`case let .foo(x)`)
+  # or when there are 2+ bindings (left to pattern_matching_keywords instead).
+  single_binding_case_let:
+    name: "Single-Binding Case Let"
+    regex: '\bcase\s+\.\w+\((?:\w+:\s*)?(?:let|var)\s+\w+\)(?!\s*,)'
+    message: "Prefer `case let .foo(x)` over `case .foo(let x)` for a single binding."
+    severity: warning
