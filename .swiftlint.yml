@@ -4,8 +4,9 @@
 
 opt_in_rules:
   - attributes
-  - sorted_imports
+  - pattern_matching_keywords
   - sorted_enum_cases
+  - sorted_imports
   - type_contents_order
 
 disabled_rules:
@@ -23,8 +24,8 @@ disabled_rules:
 # Keep default noisy length/complexity rules at warning (not disabled, not error) so
 # existing large files don't hard-fail CI, but new/edited code still gets flagged.
 line_length:
-  warning: 150
-  error: 250
+  warning: 120
+  error: 240
   ignores_urls: true
   ignores_function_declarations: true
   ignores_comments: true
@@ -49,15 +50,19 @@ cyclomatic_complexity:
 attributes:
   severity: warning
   always_on_line_above:
-    - "@Test"
+    - "@discardableResult"
     - "@MainActor"
     - "@Observable"
-    - "@discardableResult"
+    - "@Test"
   always_on_same_line:
     - "@IBAction"
     - "@NSManaged"
 
-# Item 2 (enums): enum cases kept alphabetically sorted.
+# Item 2: prefer `case let .foo(x)` shorthand over `case .foo(let x)`.
+pattern_matching_keywords:
+  severity: warning
+
+# Item 3 (enums): enum cases kept alphabetically sorted.
 sorted_enum_cases:
   severity: warning
 
@@ -89,7 +94,16 @@ type_contents_order:
 # All at `error` severity: these are brand-new rules with no pre-existing-violation
 # backlog anywhere yet, since no repo references this shared config yet.
 custom_rules:
-  # Item 6: no PR/Linear issue references in comments, except `// TODO:` lines.
+  # Item 6: blank line required between plain `import` statements and
+  # `@testable import` statements in test files.
+  import_blank_line_before_testable:
+    name: "Blank Line Before @testable import"
+    regex: '(?m)^import\s+\S+\n@testable import'
+    included: ".*Tests.*\\.swift"
+    message: "Add a blank line between plain `import` statements and `@testable import` in test files."
+    severity: error
+
+  # Item 7: no PR/Linear issue references in comments, except `// TODO:` lines.
   no_issue_refs_in_comments:
     name: "No PR/Issue References in Comments"
     regex: '(?-s)//(?!\s*TODO:).*\b([A-Z]{2,6}-\d+|PR ?#\d+)\b'
@@ -98,7 +112,7 @@ custom_rules:
     message: "Don't reference PR/Linear issue numbers (e.g. IZZY-72, PR #9) in code comments, except on `// TODO:` lines."
     severity: error
 
-  # Item 9: prefer modern `Mutex` over hand-rolled NSLock/manual locking.
+  # Item 8: prefer modern `Mutex` over hand-rolled NSLock/manual locking.
   prefer_mutex_over_nslock:
     name: "Prefer Mutex over NSLock"
     regex: '\bNSLock\s*\('
@@ -107,11 +121,16 @@ custom_rules:
     message: "Prefer the modern `Mutex` API over hand-rolled `NSLock`/manual locking."
     severity: error
 
-  # Item 4: blank line required between plain `import` statements and
-  # `@testable import` statements in test files.
-  import_blank_line_before_testable:
-    name: "Blank Line Before @testable import"
-    regex: '(?m)^import\s+\S+\n@testable import'
-    included: ".*Tests.*\\.swift"
-    message: "Add a blank line between plain `import` statements and `@testable import` in test files."
-    severity: error
+  # Single-binding case let: prefer `case let .foo(x)` over `case .foo(let x)`.
+  # SwiftLint's built-in `pattern_matching_keywords` only covers patterns with
+  # 2+ bindings (e.g. `.foo(let x, let y)`); it does NOT flag a single binding
+  # like `.bar(let value)` (verified empirically against SwiftLint 0.65.1).
+  # This rule closes that gap. Matches `case .foo(let x)` / `case .foo(var x)`
+  # with exactly one bound identifier in the parens, and deliberately does NOT
+  # match when `let`/`var` already precedes the leading dot (`case let .foo(x)`)
+  # or when there are 2+ bindings (left to pattern_matching_keywords instead).
+  single_binding_case_let:
+    name: "Single-Binding Case Let"
+    regex: '\bcase\s+\.\w+\((?:\w+:\s*)?(?:let|var)\s+\w+\)(?!\s*,)'
+    message: "Prefer `case let .foo(x)` over `case .foo(let x)` for a single binding."
+    severity: warning
