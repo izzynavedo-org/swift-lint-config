@@ -7,6 +7,7 @@ opt_in_rules:
   - sorted_imports
   - sorted_enum_cases
   - type_contents_order
+  - pattern_matching_keywords
 
 disabled_rules:
   - todo # we allow // TODO: comments (see custom rule below re: PR/issue refs)
@@ -84,6 +85,10 @@ type_contents_order:
     - other_method
     - subscript
     - deinitializer
+
+# Item 6: prefer `case let .foo(x)` shorthand over `case .foo(let x)`.
+pattern_matching_keywords:
+  severity: warning
 
 # --- Custom regex rules ---
 # All at `error` severity: these are brand-new rules with no pre-existing-violation
