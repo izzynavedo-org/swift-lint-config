@@ -10,6 +10,14 @@ opt_in_rules:
 
 disabled_rules:
   - todo # we allow // TODO: comments (see custom rule below re: PR/issue refs)
+  # identifier_name is disabled below: it's actively hostile to item 3
+  # (backtick-quoted descriptive Swift Testing names). A name like
+  # `FakeProvider's status defaults to notDetermined` always fails
+  # identifier_name's "should start with a lowercase character" check
+  # (verified against real Rotation test files) even though that's exactly the
+  # naming convention we want. No clean config-level way to scope the rule to
+  # "skip backtick-quoted @Test function names only" — disabled outright.
+  - identifier_name
 
 # --- Built-in rule tuning ---
 # Keep default noisy length/complexity rules at warning (not disabled, not error) so
