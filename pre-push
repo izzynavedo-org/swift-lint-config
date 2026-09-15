@@ -1,0 +1,84 @@
+#!/bin/sh
+#
+# pre-push
+#
+# Shared swiftlint pre-push hook, vendored here so every consuming repo
+# (Rotation, account-sync, pr-review-dispatcher, ...) enforces the same
+# gate — mirrors how .swiftlint.yml's parent_config is shared, just for
+# a pre-push hook instead of lint rules.
+#
+# Blocks a push if swiftlint reports ANY violation (warning or error) in
+# a .swift file actually touched by the commits being pushed. Scoped to
+# changed files only — deliberately does not re-lint the whole repo, so
+# pre-existing violations elsewhere don't block unrelated pushes.
+#
+# Consuming repos don't copy this file — each repo's own
+# .githooks/pre-push is a thin wrapper that fetches this file by its
+# pinned raw URL and execs it (see swift-lint-config/README.md for the
+# wrapper template). Edit this one file to change behavior everywhere.
+
+set -e
+
+SWIFTLINT_BIN="$(command -v swiftlint || true)"
+if [ -z "$SWIFTLINT_BIN" ] && [ -x "$HOME/bin/swiftlint" ]; then
+    SWIFTLINT_BIN="$HOME/bin/swiftlint"
+fi
+if [ -z "$SWIFTLINT_BIN" ]; then
+    echo "pre-push: swiftlint not found (checked PATH and ~/bin/swiftlint)." >&2
+    echo "pre-push: install it or CI will be the only lint gate for this push." >&2
+    exit 1
+fi
+
+default_branch="${PRE_PUSH_DEFAULT_BRANCH:-main}"
+zero_sha="0000000000000000000000000000000000000000"
+changed_files=""
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+    [ "$local_sha" = "$zero_sha" ] && continue # deleting a ref — nothing to lint
+
+    if [ "$remote_sha" = "$zero_sha" ]; then
+        # New remote branch/ref: no remote history to diff against yet.
+        # Fall back to diffing against the merge-base with the default branch.
+        base_sha="$(git merge-base "$local_sha" "origin/$default_branch" 2>/dev/null || true)"
+        if [ -z "$base_sha" ]; then
+            base_sha="$(git rev-list --max-parents=0 "$local_sha" | tail -1)"
+        fi
+    else
+        base_sha="$remote_sha"
+    fi
+
+    files="$(git diff --name-only --diff-filter=ACMR "$base_sha" "$local_sha" -- '*.swift' || true)"
+    if [ -n "$files" ]; then
+        changed_files="$changed_files
+$files"
+    fi
+done
+
+changed_files="$(printf '%s\n' "$changed_files" | sed '/^$/d' | sort -u)"
+
+if [ -z "$changed_files" ]; then
+    exit 0
+fi
+
+existing_files=""
+for f in $changed_files; do
+    [ -f "$f" ] && existing_files="$existing_files $f"
+done
+
+if [ -z "$existing_files" ]; then
+    exit 0
+fi
+
+echo "pre-push: running swiftlint on changed files:"
+printf '  %s\n' $existing_files
+
+# shellcheck disable=SC2086
+if ! "$SWIFTLINT_BIN" lint --strict $existing_files; then
+    echo "" >&2
+    echo "pre-push: swiftlint found violations in files this push touches." >&2
+    echo "pre-push: fix them (read every warning, don't blind --fix) before pushing." >&2
+    echo "pre-push: bypass only in a real emergency with 'git push --no-verify'." >&2
+    exit 1
+fi
+
+exit 0

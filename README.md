@@ -73,3 +73,45 @@ rules that are prone to noisy pre-existing violations in real codebases
 `cyclomatic_complexity`) are kept at `warning` (with generous thresholds)
 rather than `error`, so CI doesn't start red on day one for large existing
 files.
+
+## Shared pre-push hook
+
+This repo also vendors a shared `pre-push` git hook (same live-fetch pattern
+as `.swiftlint.yml` above — same "no version pinning, edits to `main` are
+live immediately" caveat applies). It blocks a push if `swiftlint` finds ANY
+violation, including warnings, in a `.swift` file the push's commits
+actually touch. Deliberately stricter than CI, which only fails the build on
+errors — this is meant to catch issues before they ever reach a PR.
+
+Each consuming repo keeps a thin wrapper at `.githooks/pre-push` that fetches
+this file fresh and execs it:
+
+```sh
+#!/bin/sh
+set -e
+HOOK_URL="https://raw.githubusercontent.com/izzynavedo-org/swift-lint-config/main/pre-push"
+HOOK_TMP="$(mktemp)"
+trap 'rm -f "$HOOK_TMP"' EXIT
+if ! curl -fsSL -o "$HOOK_TMP" "$HOOK_URL"; then
+    echo "pre-push: couldn't fetch shared hook from swift-lint-config — allowing push." >&2
+    echo "pre-push: run 'swiftlint lint' yourself before relying on CI alone." >&2
+    exit 0
+fi
+chmod +x "$HOOK_TMP"
+exec "$HOOK_TMP" "$@"
+```
+
+Enable per clone/worktree in each consuming repo:
+
+```sh
+git config core.hooksPath .githooks
+```
+
+Network failure to fetch the hook does NOT block the push (fails open) — CI
+remains the authoritative gate either way; this hook is a local convenience
+that shifts feedback earlier, not a hard requirement for a push to succeed.
+
+To change the hook's behavior for every consuming repo, edit `pre-push` in
+this repo and merge to `main` — same one-file, no-copy update model as the
+lint config.
+
