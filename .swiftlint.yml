@@ -24,8 +24,8 @@ disabled_rules:
 # Keep default noisy length/complexity rules at warning (not disabled, not error) so
 # existing large files don't hard-fail CI, but new/edited code still gets flagged.
 line_length:
-  warning: 150
-  error: 250
+  warning: 120
+  error: 240
   ignores_urls: true
   ignores_function_declarations: true
   ignores_comments: true
@@ -50,15 +50,19 @@ cyclomatic_complexity:
 attributes:
   severity: warning
   always_on_line_above:
-    - "@Test"
+    - "@discardableResult"
     - "@MainActor"
     - "@Observable"
-    - "@discardableResult"
+    - "@Test"
   always_on_same_line:
     - "@IBAction"
     - "@NSManaged"
 
-# Item 2 (enums): enum cases kept alphabetically sorted.
+# Item 2: prefer `case let .foo(x)` shorthand over `case .foo(let x)`.
+pattern_matching_keywords:
+  severity: warning
+
+# Item 3 (enums): enum cases kept alphabetically sorted.
 sorted_enum_cases:
   severity: warning
 
@@ -86,15 +90,11 @@ type_contents_order:
     - subscript
     - deinitializer
 
-# Item 6: prefer `case let .foo(x)` shorthand over `case .foo(let x)`.
-pattern_matching_keywords:
-  severity: warning
-
 # --- Custom regex rules ---
 # All at `error` severity: these are brand-new rules with no pre-existing-violation
 # backlog anywhere yet, since no repo references this shared config yet.
 custom_rules:
-  # Item 4: blank line required between plain `import` statements and
+  # Item 6: blank line required between plain `import` statements and
   # `@testable import` statements in test files.
   import_blank_line_before_testable:
     name: "Blank Line Before @testable import"
@@ -103,7 +103,7 @@ custom_rules:
     message: "Add a blank line between plain `import` statements and `@testable import` in test files."
     severity: error
 
-  # Item 6: no PR/Linear issue references in comments, except `// TODO:` lines.
+  # Item 7: no PR/Linear issue references in comments, except `// TODO:` lines.
   no_issue_refs_in_comments:
     name: "No PR/Issue References in Comments"
     regex: '(?-s)//(?!\s*TODO:).*\b([A-Z]{2,6}-\d+|PR ?#\d+)\b'
@@ -112,7 +112,7 @@ custom_rules:
     message: "Don't reference PR/Linear issue numbers (e.g. IZZY-72, PR #9) in code comments, except on `// TODO:` lines."
     severity: error
 
-  # Item 9: prefer modern `Mutex` over hand-rolled NSLock/manual locking.
+  # Item 8: prefer modern `Mutex` over hand-rolled NSLock/manual locking.
   prefer_mutex_over_nslock:
     name: "Prefer Mutex over NSLock"
     regex: '\bNSLock\s*\('
