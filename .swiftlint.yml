@@ -4,10 +4,10 @@
 
 opt_in_rules:
   - attributes
-  - sorted_imports
-  - sorted_enum_cases
-  - type_contents_order
   - pattern_matching_keywords
+  - sorted_enum_cases
+  - sorted_imports
+  - type_contents_order
 
 disabled_rules:
   - todo # we allow // TODO: comments (see custom rule below re: PR/issue refs)
@@ -94,6 +94,15 @@ pattern_matching_keywords:
 # All at `error` severity: these are brand-new rules with no pre-existing-violation
 # backlog anywhere yet, since no repo references this shared config yet.
 custom_rules:
+  # Item 4: blank line required between plain `import` statements and
+  # `@testable import` statements in test files.
+  import_blank_line_before_testable:
+    name: "Blank Line Before @testable import"
+    regex: '(?m)^import\s+\S+\n@testable import'
+    included: ".*Tests.*\\.swift"
+    message: "Add a blank line between plain `import` statements and `@testable import` in test files."
+    severity: error
+
   # Item 6: no PR/Linear issue references in comments, except `// TODO:` lines.
   no_issue_refs_in_comments:
     name: "No PR/Issue References in Comments"
@@ -110,15 +119,6 @@ custom_rules:
     match_kinds:
       - identifier
     message: "Prefer the modern `Mutex` API over hand-rolled `NSLock`/manual locking."
-    severity: error
-
-  # Item 4: blank line required between plain `import` statements and
-  # `@testable import` statements in test files.
-  import_blank_line_before_testable:
-    name: "Blank Line Before @testable import"
-    regex: '(?m)^import\s+\S+\n@testable import'
-    included: ".*Tests.*\\.swift"
-    message: "Add a blank line between plain `import` statements and `@testable import` in test files."
     severity: error
 
   # Single-binding case let: prefer `case let .foo(x)` over `case .foo(let x)`.
