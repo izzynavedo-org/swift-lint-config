@@ -61,6 +61,7 @@ attributes:
     - "@Query"
     - "@State"
     - "@Test"
+    - "@testable"
 
 # Item 2: prefer `case let .foo(x)` shorthand over `case .foo(let x)`.
 pattern_matching_keywords:
